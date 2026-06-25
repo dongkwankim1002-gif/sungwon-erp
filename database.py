@@ -81,7 +81,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# ----------------- 공통 DB 초기화 (SQLite / Google Sheets) -----------------
+@st.cache_resource
 def init_db():
     if is_sheets_configured():
         # --- 구글 스프레드시트 초기화 ---
@@ -94,11 +94,13 @@ def init_db():
             wks_users = sh.add_worksheet("users", 100, 10)
             
         # 완전히 비어있다면 헤더 작성
-        if len(wks_users.get_all_values()) == 0:
+        users_vals = wks_users.get_all_values()
+        if len(users_vals) == 0:
             wks_users.append_row(["id", "username", "password", "department", "rank", "role"])
+            users_vals = [["id", "username", "password", "department", "rank", "role"]]
             
         # 헤더 외에 데이터가 없다면 초기 데이터 주입
-        if len(wks_users.get_all_values()) <= 1:
+        if len(users_vals) <= 1:
             users_data = [
                 ["1", "admin", "admin123", "관리자", "대표", "admin"],
                 ["2", "sales_kim", "sales123", "영업", "대리", "user"],
@@ -114,10 +116,12 @@ def init_db():
         except gspread.WorksheetNotFound:
             wks_cargo = sh.add_worksheet("cargo_tracking", 100, 15)
             
-        if len(wks_cargo.get_all_values()) == 0:
+        cargo_vals = wks_cargo.get_all_values()
+        if len(cargo_vals) == 0:
             wks_cargo.append_row(["id", "booking_no", "bl_no", "client_name", "origin", "destination", "vessel_name", "status", "cargo_weight", "margin", "revenue", "updated_at"])
+            cargo_vals = [["id", "booking_no", "bl_no", "client_name", "origin", "destination", "vessel_name", "status", "cargo_weight", "margin", "revenue", "updated_at"]]
             
-        if len(wks_cargo.get_all_values()) <= 1:
+        if len(cargo_vals) <= 1:
             cargo_data = [
                 ["1", "BK20260601", "BLSHAN0912", "(주)선우무역", "부산(Busan)", "상해(Shanghai)", "SUNGWON PRIDE V.101", "인도완료", "12.5", "450000", "3200000", "2026-06-20 14:00:00"],
                 ["2", "BK20260602", "BLLAX55431", "대일실업", "부산(Busan)", "로스앤젤레스(Los Angeles)", "PACIFIC VOYAGER V.05", "운송중", "24.0", "1200000", "8500000", "2026-06-24 09:30:00"],
@@ -133,10 +137,12 @@ def init_db():
         except gspread.WorksheetNotFound:
             wks_posts = sh.add_worksheet("posts", 100, 10)
             
-        if len(wks_posts.get_all_values()) == 0:
+        posts_vals = wks_posts.get_all_values()
+        if len(posts_vals) == 0:
             wks_posts.append_row(["id", "title", "content", "author", "department", "is_private", "created_at"])
+            posts_vals = [["id", "title", "content", "author", "department", "is_private", "created_at"]]
             
-        if len(wks_posts.get_all_values()) <= 1:
+        if len(posts_vals) <= 1:
             posts_data = [
                 ["1", "2026년 하반기 물류 단가 가이드라인 공지", "선사 물동량 협의에 따라 영업본부에서 확정한 단가 가이드를 공지합니다.", "admin", "관리자", "0", "2026-06-24 10:00:00"],
                 ["2", "영업본부 내부 거래처 등급 조정안 (비공개)", "각 영업 담당자는 담당 화주사의 여신 등급 조정안을 참고하여 거래선 관리에 만전을 기해주시기 바랍니다.", "sales_kim", "영업", "1", "2026-06-24 15:30:00"],
@@ -150,10 +156,12 @@ def init_db():
         except gspread.WorksheetNotFound:
             wks_meetings = sh.add_worksheet("meetings", 100, 10)
             
-        if len(wks_meetings.get_all_values()) == 0:
+        meetings_vals = wks_meetings.get_all_values()
+        if len(meetings_vals) == 0:
             wks_meetings.append_row(["id", "title", "content", "author", "department", "created_at"])
+            meetings_vals = [["id", "title", "content", "author", "department", "created_at"]]
             
-        if len(wks_meetings.get_all_values()) <= 1:
+        if len(meetings_vals) <= 1:
             meetings_data = [
                 ["1", "하반기 물동량 증대 전략 회의", "주요 화주사인 대일실업의 북미 수출 신규 오더 수주 대응 방안에 대해 회의함. 선사 스페이스 추가 확보 필요.", "sales_kim", "영업", "2026-06-24 11:30:00"],
                 ["2", "선박 체선 대응 및 대체 항로 모색", "로테르담 항구 정체로 인한 납기 지연 방지를 위해 철도 연계 운송(TSR) 옵션 제공 가능 여부 검토.", "ops_lee", "물류운송", "2026-06-25 10:00:00"]
