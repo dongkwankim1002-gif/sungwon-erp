@@ -118,14 +118,12 @@ with st.sidebar:
     st.write("---")
     st.subheader("🔑 AI 설정")
     
-    api_key_input = st.text_input(
+    st.text_input(
         "Gemini API API Key",
-        value=st.session_state.api_key_input,
+        key="api_key_input",
         type="password",
         help="Google AI Studio에서 발급받은 API 키를 입력하세요."
     )
-    if api_key_input:
-        st.session_state.api_key_input = api_key_input
 
 # 6. AI 생성 헬퍼 함수
 def ask_gemini(prompt):
