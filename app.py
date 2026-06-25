@@ -77,14 +77,52 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 4. 세션 상태 관리 (Session States)
-if "user_dept" not in st.session_state:
-    st.session_state.user_dept = "영업"
-if "user_rank" not in st.session_state:
-    st.session_state.user_rank = "대리"
-if "user_name" not in st.session_state:
-    st.session_state.user_name = "sales_kim"
+if "logged_in_user" not in st.session_state:
+    st.session_state.logged_in_user = None
 if "api_key_input" not in st.session_state:
     st.session_state.api_key_input = os.environ.get("GEMINI_API_KEY", "")
+
+# 4-1. 로그인 화면 처리 (로그인하지 않은 경우)
+if st.session_state.logged_in_user is None:
+    st.markdown("<div class='main-header'>🚢 성원글로벌카고 AI ERP 로그인</div>", unsafe_allow_html=True)
+    st.write("서비스를 이용하시려면 사내 계정으로 로그인해 주십시오.")
+    
+    col_login, _ = st.columns([1, 2])
+    with col_login:
+        with st.form("login_form"):
+            login_id = st.text_input("아이디 (ID)")
+            login_pw = st.text_input("비밀번호 (Password)", type="password")
+            btn_login = st.form_submit_button("로그인")
+            
+            if btn_login:
+                user = db.verify_user(login_id, login_pw)
+                if user:
+                    st.session_state.logged_in_user = user
+                    st.session_state.user_name = user["username"]
+                    st.session_state.user_dept = user["department"]
+                    st.session_state.user_rank = user["rank"]
+                    st.success(f"{user['username']}님, 환영합니다!")
+                    st.rerun()
+                else:
+                    st.error("아이디 또는 비밀번호가 올바르지 않습니다.")
+                    
+    st.info("""
+    🔑 **초기 로그인 데모 계정 안내**:
+    - **대표/관리자**: `admin` / 비밀번호: `admin123`
+    - **영업부**: `sales_kim` / 비밀번호: `sales123`
+    - **물류운송부**: `ops_lee` / 비밀번호: `ops123`
+    - **통관부**: `customs_park` / 비밀번호: `customs123`
+    - **재무부**: `fin_choi` / 비밀번호: `fin123`
+    
+    *실전 도입 시, 관리자(admin) 계정으로 로그인한 뒤 '직원 관리 (어드민)' 탭에서 새 임직원 계정을 생성해 주십시오.*
+    """)
+    st.stop()
+
+# 로그인 성공 시 사용자 정보 로드
+user_info = st.session_state.logged_in_user
+st.session_state.user_name = user_info["username"]
+st.session_state.user_dept = user_info["department"]
+st.session_state.user_rank = user_info["rank"]
 
 # 5. 사이드바 구현 (부서 권한 및 API 키 설정)
 with st.sidebar:
@@ -92,28 +130,14 @@ with st.sidebar:
     st.title("성원글로벌카고 ERP")
     st.write("---")
     
-    st.subheader("👤 부서 및 사용자 설정 (RBAC)")
+    st.subheader("👤 로그인 정보")
+    st.write(f"**사용자**: {st.session_state.user_name}")
+    st.write(f"**부서**: {st.session_state.user_dept}부")
+    st.write(f"**직급**: {st.session_state.user_rank}")
     
-    # 가상 로그인 유저 선택 기능
-    users_list = [
-        {"name": "sales_kim", "dept": "영업", "rank": "대리"},
-        {"name": "ops_lee", "dept": "물류운송", "rank": "과장"},
-        {"name": "customs_park", "dept": "통관", "rank": "사원"},
-        {"name": "fin_choi", "dept": "재무", "rank": "부장"},
-        {"name": "admin", "dept": "관리자", "rank": "대표"}
-    ]
-    
-    selected_user = st.selectbox(
-        "로그인 사용자 선택",
-        options=users_list,
-        format_func=lambda x: f"{x['name']} ({x['dept']}부 / {x['rank']})"
-    )
-    
-    st.session_state.user_name = selected_user["name"]
-    st.session_state.user_dept = selected_user["dept"]
-    st.session_state.user_rank = selected_user["rank"]
-    
-    st.info(f"**접근 부서**: {st.session_state.user_dept}\n\n**보안 직급**: {st.session_state.user_rank}")
+    if st.button("로그아웃"):
+        st.session_state.logged_in_user = None
+        st.rerun()
     
     st.write("---")
     st.subheader("🔑 AI 설정")
