@@ -117,11 +117,9 @@ with st.sidebar:
     
     st.write("---")
     st.subheader("🔑 AI 설정")
-    
     st.text_input(
         "Gemini API API Key",
         key="api_key_input",
-        type="password",
         help="Google AI Studio에서 발급받은 API 키를 입력하세요."
     )
 
