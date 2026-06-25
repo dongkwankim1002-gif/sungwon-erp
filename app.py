@@ -117,11 +117,19 @@ with st.sidebar:
     
     st.write("---")
     st.subheader("🔑 AI 설정")
-    st.text_input(
-        "Gemini API API Key",
-        key="api_key_input",
-        help="Google AI Studio에서 발급받은 API 키를 입력하세요."
-    )
+    
+    # Secrets에 키가 설정되어 있으면 입력창을 숨기고 연동 완료 메시지만 표시 (보안강화)
+    if os.environ.get("GEMINI_API_KEY"):
+        st.success("🤖 AI 엔진 연동 완료 (보안 가동 중)")
+        st.session_state.api_key_input = os.environ.get("GEMINI_API_KEY")
+    else:
+        # Secrets에 키가 없으면 수동 입력받되, 패스워드 형식으로 마스킹 처리
+        st.text_input(
+            "Gemini API API Key",
+            key="api_key_input",
+            type="password",
+            help="Google AI Studio에서 발급받은 API 키를 입력하세요."
+        )
 
 # 6. AI 생성 헬퍼 함수
 def ask_gemini(prompt):
