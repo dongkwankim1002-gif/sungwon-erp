@@ -172,7 +172,7 @@ def ask_gemini(prompt):
         return "⚠️ 오류: Gemini API 키가 입력되지 않았습니다. 사이드바 하단에서 API 키를 입력한 뒤 다시 시도해 주세요."
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-3.5-flash")
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
