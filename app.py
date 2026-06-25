@@ -171,8 +171,8 @@ def ask_gemini(prompt):
     if not api_key:
         return "⚠️ 오류: Gemini API 키가 입력되지 않았습니다. 사이드바 하단에서 API 키를 입력한 뒤 다시 시도해 주세요."
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-3.5-flash")
+        genai.configure(api_key=api_key, transport="rest")
+        model = genai.GenerativeModel("gemini-3.1-flash-lite")
         response = model.generate_content(prompt, request_options={"timeout": 20.0})
         return response.text
     except Exception as e:
@@ -184,12 +184,16 @@ def ask_gemini_stream(prompt):
         yield "⚠️ 오류: Gemini API 키가 입력되지 않았습니다. 사이드바 하단에서 API 키를 입력한 뒤 다시 시도해 주세요."
         return
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-3.5-flash")
+        genai.configure(api_key=api_key, transport="rest")
+        model = genai.GenerativeModel("gemini-3.1-flash-lite")
         response = model.generate_content(prompt, stream=True, request_options={"timeout": 20.0})
         for chunk in response:
-            if chunk.text:
-                yield chunk.text
+            try:
+                if chunk.text:
+                    yield chunk.text
+            except Exception:
+                # 안전 필터 등으로 인해 텍스트 추출이 불가능한 청크는 무시하고 진행
+                pass
     except Exception as e:
         yield f"⚠️ Gemini API 호출 중 오류가 발생했습니다:\n{str(e)}"
 
