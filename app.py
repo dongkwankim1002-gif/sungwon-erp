@@ -173,10 +173,25 @@ def ask_gemini(prompt):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-3.5-flash")
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, request_options={"timeout": 20.0})
         return response.text
     except Exception as e:
         return f"⚠️ Gemini API 호출 중 오류가 발생했습니다:\n{str(e)}"
+
+def ask_gemini_stream(prompt):
+    api_key = st.session_state.api_key_input
+    if not api_key:
+        yield "⚠️ 오류: Gemini API 키가 입력되지 않았습니다. 사이드바 하단에서 API 키를 입력한 뒤 다시 시도해 주세요."
+        return
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-3.5-flash")
+        response = model.generate_content(prompt, stream=True, request_options={"timeout": 20.0})
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+    except Exception as e:
+        yield f"⚠️ Gemini API 호출 중 오류가 발생했습니다:\n{str(e)}"
 
 # 7. 메인 화면 구성
 st.markdown("<div class='main-header'>🚢 SUNGWON GLOBAL CARGO AI ERP</div>", unsafe_allow_html=True)
@@ -530,11 +545,17 @@ with tab_ai:
                 [입력 내용]:
                 {draft_summary}
                 """
+                placeholder = st.empty()
+                full_text = ""
                 with st.spinner("AI가 격식 있는 기안서를 작성 중입니다..."):
-                    result = ask_gemini(prompt)
+                    for chunk in ask_gemini_stream(prompt):
+                        full_text += chunk
+                        placeholder.markdown(full_text)
+                
+                if full_text and not full_text.startswith("⚠️"):
                     st.success("기안서 초안 작성이 완료되었습니다!")
-                    st.text_area("결과물 확인 및 복사", value=result, height=400)
-                    st.download_button("📥 기안서 다운로드 (텍스트)", data=result, file_name="ai_draft.txt", mime="text/plain")
+                    st.text_area("결과물 확인 및 복사", value=full_text, height=400, key="draft_result_area")
+                    st.download_button("📥 기안서 다운로드 (텍스트)", data=full_text, file_name="ai_draft.txt", mime="text/plain")
 
     # Sub-tab 2: AI 업무일지
     with ai_sub_tab2:
@@ -562,11 +583,17 @@ with tab_ai:
                 [메모 내용]:
                 {work_notes}
                 """
+                placeholder = st.empty()
+                full_text = ""
                 with st.spinner("AI가 업무일지를 포맷팅 중입니다..."):
-                    result = ask_gemini(prompt)
+                    for chunk in ask_gemini_stream(prompt):
+                        full_text += chunk
+                        placeholder.markdown(full_text)
+                
+                if full_text and not full_text.startswith("⚠️"):
                     st.success("업무일지 다듬기가 완료되었습니다!")
-                    st.text_area("결과물 확인 및 복사", value=result, height=350)
-                    st.download_button("📥 업무일지 다운로드 (텍스트)", data=result, file_name="ai_worklog.txt", mime="text/plain")
+                    st.text_area("결과물 확인 및 복사", value=full_text, height=350, key="worklog_result_area")
+                    st.download_button("📥 업무일지 다운로드 (텍스트)", data=full_text, file_name="ai_worklog.txt", mime="text/plain")
 
     # Sub-tab 3: AI 보고서
     with ai_sub_tab3:
@@ -601,11 +628,17 @@ with tab_ai:
                 4. 수익성 분석 (재무/관리자가 아닌 경우 매출/마진 데이터가 '보안 마스크' 처리되므로, 데이터가 가려진 경우 매출/마진 항목 분석을 생략하거나 권한 제한으로 마스크 처리되었음을 명시하고 물동량 위주로 분석할 것. 숫자가 있다면 구체적으로 총 매출액 및 마진 비율 분석 진행)
                 5. 주요 물류 보틀넥 분석 및 대응 의견 (예: 특정 루트나 배송 정체 상태인 건에 대한 대처 조치 제안)
                 """
+                placeholder = st.empty()
+                full_text = ""
                 with st.spinner("데이터 분석 및 보고서 작성 중..."):
-                    result = ask_gemini(prompt)
+                    for chunk in ask_gemini_stream(prompt):
+                        full_text += chunk
+                        placeholder.markdown(full_text)
+                
+                if full_text and not full_text.startswith("⚠️"):
                     st.success("데이터 기반 보고서 생성이 완료되었습니다!")
-                    st.text_area("결과물 확인 및 복사", value=result, height=450)
-                    st.download_button("📥 보고서 다운로드 (텍스트)", data=result, file_name="ai_business_report.txt", mime="text/plain")
+                    st.text_area("결과물 확인 및 복사", value=full_text, height=450, key="report_result_area")
+                    st.download_button("📥 보고서 다운로드 (텍스트)", data=full_text, file_name="ai_business_report.txt", mime="text/plain")
         else:
             st.error("데이터베이스에 등록된 화물이 없어 보고서를 작성할 수 없습니다.")
 
