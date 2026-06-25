@@ -12,6 +12,7 @@ def is_sheets_configured():
     return "gcp_service_account" in st.secrets and "GSHEET_ID" in st.secrets
 
 # ----------------- 구글 스프레드시트 헬퍼 함수 -----------------
+@st.cache_resource
 def get_sheets_client():
     creds_dict = dict(st.secrets["gcp_service_account"])
     if "private_key" in creds_dict:
@@ -21,6 +22,7 @@ def get_sheets_client():
     client = gspread.authorize(creds)
     return client
 
+@st.cache_resource
 def get_spreadsheet():
     client = get_sheets_client()
     sheet_id = st.secrets["GSHEET_ID"]
@@ -90,10 +92,13 @@ def init_db():
             wks_users = sh.worksheet("users")
         except gspread.WorksheetNotFound:
             wks_users = sh.add_worksheet("users", 100, 10)
+            
+        # 완전히 비어있다면 헤더 작성
+        if len(wks_users.get_all_values()) == 0:
             wks_users.append_row(["id", "username", "password", "department", "rank", "role"])
             
+        # 헤더 외에 데이터가 없다면 초기 데이터 주입
         if len(wks_users.get_all_values()) <= 1:
-            # 초기 데모 계정 데이터 주입
             users_data = [
                 ["1", "admin", "admin123", "관리자", "대표", "admin"],
                 ["2", "sales_kim", "sales123", "영업", "대리", "user"],
@@ -108,6 +113,8 @@ def init_db():
             wks_cargo = sh.worksheet("cargo_tracking")
         except gspread.WorksheetNotFound:
             wks_cargo = sh.add_worksheet("cargo_tracking", 100, 15)
+            
+        if len(wks_cargo.get_all_values()) == 0:
             wks_cargo.append_row(["id", "booking_no", "bl_no", "client_name", "origin", "destination", "vessel_name", "status", "cargo_weight", "margin", "revenue", "updated_at"])
             
         if len(wks_cargo.get_all_values()) <= 1:
@@ -125,6 +132,8 @@ def init_db():
             wks_posts = sh.worksheet("posts")
         except gspread.WorksheetNotFound:
             wks_posts = sh.add_worksheet("posts", 100, 10)
+            
+        if len(wks_posts.get_all_values()) == 0:
             wks_posts.append_row(["id", "title", "content", "author", "department", "is_private", "created_at"])
             
         if len(wks_posts.get_all_values()) <= 1:
@@ -140,6 +149,8 @@ def init_db():
             wks_meetings = sh.worksheet("meetings")
         except gspread.WorksheetNotFound:
             wks_meetings = sh.add_worksheet("meetings", 100, 10)
+            
+        if len(wks_meetings.get_all_values()) == 0:
             wks_meetings.append_row(["id", "title", "content", "author", "department", "created_at"])
             
         if len(wks_meetings.get_all_values()) <= 1:

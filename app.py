@@ -124,6 +124,16 @@ st.session_state.user_name = user_info["username"]
 st.session_state.user_dept = user_info["department"]
 st.session_state.user_rank = user_info["rank"]
 
+# 전사 데이터 일괄 로드 (Google Sheet API 호출 최소화)
+is_admin = (st.session_state.user_dept == "관리자")
+cargo_list = db.get_cargo_list()
+posts_list = db.get_posts(st.session_state.user_dept)
+meetings_list = db.get_meetings(st.session_state.user_dept)
+if is_admin:
+    users_list = db.get_users()
+else:
+    users_list = []
+
 # 5. 사이드바 구현 (부서 권한 및 API 키 설정)
 with st.sidebar:
     st.image("https://img.icons8.com/clouds/100/cargo-ship.png", width=100)
@@ -180,7 +190,6 @@ tab_names = [
     "📅 회의록 관리",
     "✨ AI 오토메이션 센터"
 ]
-is_admin = (st.session_state.user_dept == "관리자")
 if is_admin:
     tab_names.append("⚙️ 직원 관리 (어드민)")
 
@@ -196,8 +205,7 @@ else:
 with tab_dashboard:
     st.subheader("업무 요약 및 실시간 성과 지표")
     
-    # 데이터 로드
-    cargo_list = db.get_cargo_list()
+    # 데이터 로드 (일괄 로드된 데이터 사용)
     df_cargo = pd.DataFrame(cargo_list)
     
     # 1. 지표 카드 영역 (권한별 민감 정보 마스크)
@@ -269,8 +277,7 @@ with tab_dashboard:
             
     with col_notice:
         st.write("### 📢 전사 공지사항 및 최근 업데이트")
-        posts = db.get_posts(st.session_state.user_dept)
-        public_posts = [p for p in posts if p["is_private"] == 0]
+        public_posts = [p for p in posts_list if p["is_private"] == 0]
         
         if public_posts:
             for p in public_posts[:3]:
@@ -294,7 +301,6 @@ with tab_tracking:
     # 1. 필터 및 검색
     search_query = st.text_input("🔍 Booking No, B/L No, 혹은 화주명으로 검색", "")
     
-    cargo_list = db.get_cargo_list()
     df_disp = pd.DataFrame(cargo_list)
     
     if not df_disp.empty and search_query:
@@ -369,11 +375,10 @@ with tab_tracking:
     with col_edit:
         if st.session_state.user_dept in ["물류운송", "통관", "관리자"]:
             st.write("### 🔄 배송 상태 변경")
-            cargo_options = db.get_cargo_list()
-            if cargo_options:
+            if cargo_list:
                 target_cargo = st.selectbox(
                     "상태를 변경할 화물 선택",
-                    options=cargo_options,
+                    options=cargo_list,
                     format_func=lambda x: f"[{x['booking_no']}] {x['client_name']} -> {x['destination']} ({x['status']})"
                 )
                 
@@ -401,9 +406,8 @@ with tab_board:
     
     with col_post_list:
         st.write("### 최근 업무 공유 사항")
-        posts = db.get_posts(st.session_state.user_dept)
-        if posts:
-            for p in posts:
+        if posts_list:
+            for p in posts_list:
                 is_private_badge = "<span class='badge badge-danger'>부서비공개</span>" if p["is_private"] == 1 else "<span class='badge badge-success'>전체공개</span>"
                 st.markdown(f"""
                 <div class='card'>
@@ -447,9 +451,8 @@ with tab_meetings:
     
     with col_meet_list:
         st.write("### 부서 회의록 아카이브")
-        meetings = db.get_meetings(st.session_state.user_dept)
-        if meetings:
-            for m in meetings:
+        if meetings_list:
+            for m in meetings_list:
                 st.markdown(f"""
                 <div class='card'>
                     <div style='display:flex; justify-content:space-between;'>
@@ -571,7 +574,7 @@ with tab_ai:
         st.info("시스템 DB에 등록된 실시간 선적 및 화물 목록 데이터를 바탕으로 AI가 물동량 및 현황 요약 보고서를 작성합니다.")
         
         # 현재 DB 데이터 요약 추출
-        cargo_list_report = db.get_cargo_list()
+        cargo_list_report = cargo_list
         
         if cargo_list_report:
             df_rep = pd.DataFrame(cargo_list_report)
@@ -613,8 +616,7 @@ if is_admin:
         
         # 1. 직원 목록 표
         st.write("### 현재 등록된 직원 목록")
-        users = db.get_users()
-        df_users = pd.DataFrame(users)
+        df_users = pd.DataFrame(users_list)
         st.dataframe(df_users, use_container_width=True)
         
         col_u_add, col_u_edit = st.columns(2)
@@ -644,11 +646,10 @@ if is_admin:
         # 3. 직원 정보 수정 및 삭제
         with col_u_edit:
             st.write("### 🔄 직원 권한 및 정보 변경")
-            user_options = db.get_users()
-            if user_options:
+            if users_list:
                 target_user = st.selectbox(
                     "정보를 변경할 직원 선택",
-                    options=user_options,
+                    options=users_list,
                     format_func=lambda x: f"{x['username']} ({x['department']}부 / {x['rank']})"
                 )
                 

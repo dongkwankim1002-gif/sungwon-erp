@@ -17,3 +17,9 @@ __pycache__/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Private test/key files
+test_key.py
+test_db.py
+check_sheet.py
+*.tmp
