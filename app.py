@@ -91,7 +91,7 @@ if st.session_state.logged_in_user is None:
     with col_login:
         with st.form("login_form"):
             login_id = st.text_input("아이디 (ID)")
-            login_pw = st.text_input("비밀번호 (Password)", type="password")
+            login_pw = st.text_input("비밀번호 (Password)")
             btn_login = st.form_submit_button("로그인")
             
             if btn_login:
